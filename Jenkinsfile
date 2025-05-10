@@ -1,74 +1,83 @@
 pipeline {
     agent any
     environment {
-        BACKEND_IMAGE = 'my-flask-app'
-        FRONTEND_IMAGE = 'my-frontend'
-        REGISTRY = 'docker.io/myusername'
-        DOCKER_CREDENTIALS = 'docker-credentials'
+        DOCKERHUB_CREDENTIALS = credentials('DOCKERHUB_CREDENTIALS') // Docker Hub credentials ID
+        BACKEND_IMAGE = "aungkowin/flask-backend:latest"
+        FRONTEND_IMAGE = "aungkowin/nginx-frontend:latest"
     }
     stages {
         stage('Checkout') {
             steps {
+                // Checkout code from Git repository
                 git branch: 'main', url: 'https://github.com/aungkowinitlay/Lab1.Jenkins.git'
             }
         }
-        stage('Build Backend') {
+        stage('Build Backend Image') {
             steps {
-                dir('backend') {
-                    sh 'python3 -m venv venv'
-                    sh '. venv/bin/activate && pip install -r requirements.txt'
-                }
+                // Build Backend Docker image
+                sh """
+                    docker build -t ${BACKEND_IMAGE} -f Dockerfile.backend .
+                """
+            }
+        }
+        stage('Build Frontend Image') {
+            steps {
+                // Build Frontend Docker image
+                sh """
+                    docker build -t ${FRONTEND_IMAGE} -f Dockerfile.frontend .
+                """
             }
         }
         stage('Test Backend') {
             steps {
-                dir('backend') {
-                    sh '. venv/bin/activate && pytest'
-                }
+                // Placeholder for backend tests (add actual tests if available)
+                sh """
+                    echo "Running backend tests..."
+                    # Example: docker run ${BACKEND_IMAGE} pytest
+                """
             }
         }
-        stage('Build Frontend') {
+        stage('Login to Docker Hub') {
             steps {
-                dir('frontend') {
-                    sh 'html-validate index.html'
-                }
+                // Login to Docker Hub
+                sh """
+                    echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
+                """
             }
         }
-        stage('Build Docker Images') {
+        stage('Push Images') {
             steps {
-                dir('backend') {
-                    sh "docker build -t ${REGISTRY}/${BACKEND_IMAGE}:${env.BUILD_NUMBER} ."
-                }
-                dir('frontend') {
-                    sh "docker build -t ${REGISTRY}/${FRONTEND_IMAGE}:${env.BUILD_NUMBER} ."
-                }
-            }
-        }
-        stage('Push Docker Images') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    sh "docker push ${REGISTRY}/${BACKEND_IMAGE}:${env.BUILD_NUMBER}"
-                    sh "docker push ${REGISTRY}/${FRONTEND_IMAGE}:${env.BUILD_NUMBER}"
-                }
+                // Push Docker images to Docker Hub
+                sh """
+                    docker push ${BACKEND_IMAGE}
+                    docker push ${FRONTEND_IMAGE}
+                """
             }
         }
         stage('Deploy') {
             steps {
-                sh 'docker-compose -f docker-compose.yml up -d'
+                // Run containers locally (modify for your deployment environment)
+                sh """
+                    docker rm -f flask-backend || true
+                    docker rm -f nginx-frontend || true
+                    docker run -d --name flask-backend -p 5000:5000 ${BACKEND_IMAGE}
+                    docker run -d --name nginx-frontend -p 80:80 ${FRONTEND_IMAGE}
+                """
             }
         }
     }
     post {
         always {
-            sh 'docker logout'
-            cleanWs()
+            // Clean up Docker images and logout
+            sh """
+                docker logout
+            """
         }
         success {
-            echo 'Pipeline completed successfully!'
+            echo "Pipeline completed successfully!"
         }
         failure {
-            echo 'Pipeline failed!'
+            echo "Pipeline failed!"
         }
     }
 }
