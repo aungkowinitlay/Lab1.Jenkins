@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('DOCKERHUB_CREDENTIALS') // Docker Hub credentials ID
+        DOCKERHUB_CREDENTIALS = credentials('DOCKERHUB_CREDENTIALS') // Ensure this ID matches Jenkins credentials
         BACKEND_IMAGE = "aungkowin/flask-backend:latest"
         FRONTEND_IMAGE = "aungkowin/nginx-frontend:latest"
     }
@@ -68,16 +68,22 @@ pipeline {
     }
     post {
         always {
-            // Clean up Docker images and logout
-            sh """
-                docker logout
-            """
+            node {
+                // Clean up Docker images and logout
+                sh """
+                    docker logout
+                """
+            }
         }
         success {
-            echo "Pipeline completed successfully!"
+            node {
+                echo "Pipeline completed successfully!"
+            }
         }
         failure {
-            echo "Pipeline failed!"
+            node {
+                echo "Pipeline failed!"
+            }
         }
     }
 }
