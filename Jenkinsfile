@@ -68,7 +68,7 @@ pipeline {
     }
     post {
         always {
-            node {
+            node(label: '') {
                 // Clean up Docker images and logout
                 sh """
                     docker logout
@@ -76,12 +76,12 @@ pipeline {
             }
         }
         success {
-            node {
+            node(label: '') {
                 echo "Pipeline completed successfully!"
             }
         }
         failure {
-            node {
+            node(label: '') {
                 echo "Pipeline failed!"
             }
         }
