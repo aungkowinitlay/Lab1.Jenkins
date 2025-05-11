@@ -16,7 +16,7 @@ pipeline {
             steps {
                 // Build Backend Docker image
                 sh """
-                    docker build -t ${BACKEND_IMAGE} -f Dockerfile.backend .
+                    docker build -t ${BACKEND_IMAGE} -f Dockerfile .
                 """
             }
         }
@@ -24,7 +24,7 @@ pipeline {
             steps {
                 // Build Frontend Docker image
                 sh """
-                    docker build -t ${FRONTEND_IMAGE} -f Dockerfile.frontend .
+                    docker build -t ${FRONTEND_IMAGE} -f Dockerfile.nginx .
                 """
             }
         }
